@@ -33,6 +33,15 @@ RUN mkdir -p node_modules/.vite && chmod 777 node_modules node_modules/.vite
 
 COPY --chown=node:node . .
 
+# Deploying the published image (deploy/compose.yaml) runs it WITHOUT the
+# source bind-mounted, so the app writes its state inside the container:
+# .gev-cache/ (tiles, satellite and FIRMS caches) and .gev-logs/. Both are in
+# .dockerignore, so they do not exist in the image yet - create them owned by
+# `node` so the named volumes mounted at run time are writable and the caches
+# survive a rebuild. 0777 matches node_modules above: the deploy compose may
+# run as another UID.
+RUN mkdir -p .gev-cache .gev-logs && chmod 777 .gev-cache .gev-logs
+
 # Bind to all interfaces, otherwise the published port hits nothing. This does
 # not widen the Host allowlist: IP addresses and localhost are accepted, other
 # names only via GEV_ALLOWED_HOSTS (see build/allowedHosts.js).

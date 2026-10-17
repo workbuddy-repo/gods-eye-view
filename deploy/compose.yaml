@@ -1,0 +1,33 @@
+# 部署用 compose：直接跑 GHCR 上已经构建好的镜像。
+# 目标主机上不需要源码、不需要 Node，只要 Docker。
+# 完整说明见同目录 README.md。
+
+services:
+  gods-eye-view:
+    image: ghcr.io/workbuddy-repo/gods-eye-view:latest
+    container_name: gods-eye-view
+    restart: unless-stopped
+
+    # 复杂域名直接用 80 端口，浏览器打开 http://<你的域名> 即可。
+    # 换端口：在 .env 里写 GEV_PORT=8080。
+    ports:
+      - "${GEV_PORT:-80}:4173"
+
+    # 同目录的 .env：既给本文件做变量替换（GEV_PORT），也整份注入容器。
+    # API key 和 GEV_ALLOWED_HOSTS 都写在这里。
+    env_file:
+      - .env
+
+    environment:
+      # 端口一旦对公网开放，就不要让任何人通过 Provider Settings（POWER UP 面板）
+      # 改动或读取 key：只信任本机回环地址。key 一律预先写进 .env。
+      GEV_KEY_SETUP_TRUSTED_PEERS: "none"
+
+    volumes:
+      # 缓存（瓦片、卫星过境、火灾数据）与日志持久化，重建容器不丢。
+      - gev-cache:/app/.gev-cache
+      - gev-logs:/app/.gev-logs
+
+volumes:
+  gev-cache:
+  gev-logs:
